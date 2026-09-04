@@ -15,6 +15,7 @@ minigrep/
 │   └── main.rs    # Entry point (CLI argument parsing, I/O handling)
 ├── Cargo.lock
 ├── Cargo.toml
+├── Makefile
 └── README.md
 ```
 
