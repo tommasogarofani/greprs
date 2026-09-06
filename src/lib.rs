@@ -1,38 +1,38 @@
+use clap::Parser;
+
+#[derive(Parser, Debug)]
 pub struct Config {
+    /// String to search for
     pub query: String,
+
+    /// Path to the file to search
     pub filename: String,
+
+    /// Perform a case-insensitive search
+    #[arg(short = 'i', long = "ignore-case")]
+    pub ignore_case: bool,
 }
 
-impl Config {
-    /// Costruisce una `Config` a partire dagli argomenti CLI.
-    /// Restituisce un `Result` con un messaggio d'errore in caso di argomenti insufficienti.
-    pub fn new(mut args: impl Iterator<Item = String>) -> Result<Config, &'static str> {
-        args.next();
-
-        let query = match args.next() {
-            Some(arg) => arg,
-            None => return Err("String di ricerca mancante"),
-        };
-
-        let filename = match args.next() {
-            Some(arg) => arg,
-            None => return Err("Percorso del file mancante"),
-        };
-
-        Ok(Config { query, filename })
-    }
-}
-
-/// Esegue la ricerca del contenuto del file specificato nella `Config`.
-/// Restituisce un `Result` con un messaggio d'errore in caso di problemi durante la lettura del file.
+/// Execute the search based on the provided configuration.
+/// Returns a `Result` with an error if the file cannot be read or if there is an error during the search.
 pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
-    let contents = std::fs::read_to_string(config.filename)?;
+    let contents = std::fs::read_to_string(&config.filename)?;
 
-    let results = search(&config.query, &contents);
+    let results = if config.ignore_case {
+        search_case_insensitive(&config.query, &contents)
+    } else {
+        search(&config.query, &contents)
+    };
+
     println!("{} risultati trovati:", results.len());
+    for line in results {
+        println!("{line}");
+    }
+
     Ok(())
 }
 
+/// Search for the query in the contents and return a vector of matching lines.
 pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
     contents
         .lines()
@@ -40,27 +40,34 @@ pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
         .collect()
 }
 
+/// Search for the query in the contents (case-insensitive) and return a vector of matching lines.
+pub fn search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    let query_lowercase = query.to_lowercase();
+    contents
+        .lines()
+        .filter(|line| line.to_lowercase().contains(&query_lowercase))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::vec;
 
-    /// Test per la funzione `search` in caso di nessuna riga contenente la query
+    /// search_returns_empty_when_no_match tests that the search function returns an empty vector when there are no matches for the query in the contents.
     #[test]
-    fn no_results() {
+    fn search_returns_empty_when_no_match() {
         let query = "duct";
         let contents = "\
 The quick brown fox jumps over the lazy dog.
 This small file contains simple words for testing purposes.
 Nothing in these lines will match the target string.";
 
-        let expected: Vec<&str> = vec![];
-        assert_eq!(expected, search(query, contents))
+        assert!(search(query, contents).is_empty());
     }
 
-    /// Test per la funzione `search` in caso di una sola riga contenente la query
+    /// search_returns_single_line_match tests that the search function returns a vector containing the single matching line when there is one match for the query in the contents.
     #[test]
-    fn one_result() {
+    fn search_returns_single_line_match() {
         let query = "duct";
         let contents = "\
 Rust:
@@ -70,21 +77,36 @@ Pick three.";
         assert_eq!(vec!["safe, fast, productive."], search(query, contents));
     }
 
-    /// Test per la funzione `search` in caso di più righe contenenti la query
+    /// search_returns_multiple_lines_match tests that the search function returns a vector containing all matching lines when there are multiple matches for the query in the contents.
     #[test]
-    fn more_than_one_result() {
+    fn search_returns_multiple_lines_match() {
         let query = "duct";
         let contents = "\
 This new ductile material
 helps us create a highly
 productive manufacturing process.";
 
+        let expected = vec![
+            "This new ductile material",
+            "productive manufacturing process.",
+        ];
+
+        assert_eq!(expected, search(query, contents));
+    }
+
+    /// search_case_insensitive_matches_mixed_case tests that the search_case_insensitive function correctly matches lines regardless of case, returning all matching lines.
+    #[test]
+    fn search_case_insensitive_matches_mixed_case() {
+        let query = "rUsT";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.
+Trust me.";
+
         assert_eq!(
-            vec![
-                "This new ductile material",
-                "productive manufacturing process."
-            ],
-            search(query, contents)
-        )
+            vec!["Rust:", "Trust me."],
+            search_case_insensitive(query, contents)
+        );
     }
 }
