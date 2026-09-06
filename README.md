@@ -60,14 +60,11 @@ cargo run -- duct poem.txt
 ```
 
 ### 2. Case-Insensitive Search
-Set the IGNORE_CASE environment variable to 1 (or any non-empty value) to perform a case-insensitive search:
+Use the ignore case flag (`--ignore-case`, or `-i`) to perform a case-insensitive search:
 
 ```bash
 # On Unix/Linux/macOS
-IGNORE_CASE=1 cargo run -- duct poem.txt
-
-# On Windows (PowerShell)
-$env:IGNORE_CASE=1; cargo run -- duct poem.txt
+cargo run -- duct poem.txt --ignore-case
 ```
 
 ---
