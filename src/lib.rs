@@ -1,4 +1,5 @@
 use clap::Parser;
+use colored::Colorize;
 
 #[derive(Parser, Debug)]
 pub struct Config {
@@ -24,12 +25,56 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
         search(&config.query, &contents)
     };
 
-    println!("{} risultati trovati:", results.len());
+    println!(
+        "{} risultati trovati:",
+        results.len().to_string().cyan().bold()
+    );
     for line in results {
-        println!("{line}");
+        let highlighted = highlight_query_in_line(line, &config.query, config.ignore_case);
+        println!("{highlighted}");
     }
 
     Ok(())
+}
+
+/// highlight_query_in_line highlights the occurrences of the query in the given line
+fn highlight_query_in_line(line: &str, query: &str, ignore_case: bool) -> String {
+    if query.is_empty() {
+        return line.to_string();
+    }
+
+    let mut result = String::new();
+    let mut last_idx = 0;
+
+    if ignore_case {
+        let line_lower = line.to_lowercase();
+        let query_lower = query.to_lowercase();
+
+        while let Some(idx) = line_lower[last_idx..].find(&query_lower) {
+            let actual_idx = last_idx + idx;
+            result.push_str(&line[last_idx..actual_idx]);
+
+            let matched_text = &line[actual_idx..actual_idx + query.len()];
+            result.push_str(&matched_text.bold().to_string());
+
+            last_idx = actual_idx + query.len();
+        }
+    } else {
+        // Trova e colora le corrispondenze esatte
+        while let Some(idx) = line[last_idx..].find(query) {
+            let actual_idx = last_idx + idx;
+            result.push_str(&line[last_idx..actual_idx]);
+
+            let matched_text = &line[actual_idx..actual_idx + query.len()];
+            result.push_str(&matched_text.bold().to_string());
+
+            last_idx = actual_idx + query.len();
+        }
+    }
+
+    // Aggiunge la parte rimanente della riga
+    result.push_str(&line[last_idx..]);
+    result
 }
 
 /// Search for the query in the contents and return a vector of matching lines.
@@ -108,5 +153,47 @@ Trust me.";
             vec!["Rust:", "Trust me."],
             search_case_insensitive(query, contents)
         );
+    }
+
+    /// `highlight_query_in_line_exact_match` tests that the `highlight_query_in_line` function correctly highlights the query in the line when there is an exact match.
+    #[test]
+    fn highlight_query_in_line_exact_match() {
+        // Abilita la colorazione anche durante l'esecuzione di cargo test
+        colored::control::set_override(true);
+
+        let line = "rust is productive";
+        let query = "rust";
+        let highlighted = highlight_query_in_line(line, query, false);
+
+        // Verifica che la parola "rust" contenga i codici di escape ANSI del colore
+        assert!(highlighted.contains(&query.bold().to_string()));
+    }
+
+    /// `highlight_query_in_line_case_insensitive_preserves_original_casing` tests that the `highlight_query_in_line` function correctly highlights the query in the line when there is a case-insensitive match, preserving the original casing of the matched text.
+    #[test]
+    fn highlight_query_in_line_case_insensitive_preserves_original_casing() {
+        colored::control::set_override(true);
+
+        let line = "Rust is productive";
+        let query = "rUsT";
+        let highlighted = highlight_query_in_line(line, query, true);
+
+        // Deve preservare la "R" maiuscola originale di "Rust", ma applicare il colore
+        let expected_match = "Rust".bold().to_string();
+        assert!(highlighted.contains(&expected_match));
+    }
+
+    /// `highlight_query_in_line_multiple_matches` tests that the `highlight_query_in_line` function correctly highlights all occurrences of the query in the line when there are multiple matches.
+    #[test]
+    fn highlight_query_in_line_multiple_matches() {
+        colored::control::set_override(true);
+
+        let line = "rust and rust again";
+        let query = "rust";
+        let highlighted = highlight_query_in_line(line, query, false);
+
+        let expected_match = "rust".bold().to_string();
+        // Conta quante volte compare la sequenza formattata
+        assert_eq!(highlighted.matches(&expected_match).count(), 2);
     }
 }
