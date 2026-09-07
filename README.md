@@ -61,6 +61,7 @@ cargo run -- duct poem.txt
 
 ### Flags
 - `--ignore-case`, `-i`: Perform a case-insensitive search.
+- `--line-number`, `-n`: Display line numbers for each match.
 - `--recursive`, `-r`: Search within directories and their subdirectories. (Note: <FILE_PATH> should be a directory)
 
 ---
