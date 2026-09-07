@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use clap::Parser;
 use colored::Colorize;
 
@@ -12,86 +14,139 @@ pub struct Config {
     /// Perform a case-insensitive search
     #[arg(short = 'i', long = "ignore-case")]
     pub ignore_case: bool,
+
+    /// Perform a recursive search in directories
+    #[arg(short = 'r', long = "recursive")]
+    pub recursive: bool,
 }
 
 /// Execute the search based on the provided configuration.
 /// Returns a `Result` with an error if the file cannot be read or if there is an error during the search.
 pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
-    let contents = std::fs::read_to_string(&config.filename)?;
+    let path = Path::new(&config.filename);
+    if path.is_dir() {
+        if config.recursive {
+            let results = search_dir(&config, path)?;
 
-    let results = if config.ignore_case {
-        search_case_insensitive(&config.query, &contents)
+            println!(
+                "{} risultati trovati:",
+                results.len().to_string().cyan().bold()
+            );
+            for line in results {
+                let highlighted = highlight_query_in_line(&line, &config);
+                println!("{highlighted}");
+            }
+        } else {
+            eprintln!(
+                "Error: '{}' is a directory. Use the --recursive (-r) flag to search in directories.",
+                config.filename
+            );
+            return Err("Directory provided without --recursive flag".into());
+        }
     } else {
-        search(&config.query, &contents)
-    };
+        let results = search_file(&config, path)?;
 
-    println!(
-        "{} risultati trovati:",
-        results.len().to_string().cyan().bold()
-    );
-    for line in results {
-        let highlighted = highlight_query_in_line(line, &config.query, config.ignore_case);
-        println!("{highlighted}");
+        println!(
+            "{} risultati trovati:",
+            results.len().to_string().cyan().bold()
+        );
+        for line in results {
+            let highlighted = highlight_query_in_line(&line, &config);
+            println!("{highlighted}");
+        }
     }
 
     Ok(())
 }
 
+/// search_dir searches for the query in the specified directory and its subdirectories.
+fn search_dir(config: &Config, path: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    let mut results = Vec::new();
+
+    for entry in std::fs::read_dir(path)? {
+        let entry = entry?;
+        let entry_path = entry.path();
+
+        if entry_path.is_dir() {
+            let sub_results = search_dir(config, &entry_path)?;
+            results.extend(sub_results);
+        } else if entry_path.is_file() {
+            let file_results = search_file(config, &entry_path)?;
+            results.extend(file_results);
+        }
+    }
+
+    Ok(results)
+}
+
+/// searche_file searches for the query in the specified file calling the appropriate search function based on the ignore_case flag.
+fn search_file(config: &Config, path: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    if config.ignore_case {
+        let contents = std::fs::read_to_string(path)?;
+        Ok(search_case_insensitive(&config.query, &contents))
+    } else {
+        let contents = std::fs::read_to_string(path)?;
+        Ok(search(&config.query, &contents))
+    }
+}
+
+/// Search for the query in the contents and return a vector of matching lines.
+fn search(query: &str, contents: &str) -> Vec<String> {
+    contents
+        .lines()
+        .filter(|line| line.contains(query))
+        .map(|line| line.to_string())
+        .collect()
+}
+
+/// Search for the query in the contents (case-insensitive) and return a vector of matching lines.
+fn search_case_insensitive(query: &str, contents: &str) -> Vec<String> {
+    let query_lowercase = query.to_lowercase();
+    contents
+        .lines()
+        .filter(|line| line.to_lowercase().contains(&query_lowercase))
+        .map(|line| line.to_string())
+        .collect()
+}
+
 /// highlight_query_in_line highlights the occurrences of the query in the given line
-fn highlight_query_in_line(line: &str, query: &str, ignore_case: bool) -> String {
-    if query.is_empty() {
+fn highlight_query_in_line(line: &str, config: &Config) -> String {
+    if config.query.is_empty() {
         return line.to_string();
     }
 
     let mut result = String::new();
     let mut last_idx = 0;
 
-    if ignore_case {
+    if config.ignore_case {
         let line_lower = line.to_lowercase();
-        let query_lower = query.to_lowercase();
+        let query_lower = config.query.to_lowercase();
 
         while let Some(idx) = line_lower[last_idx..].find(&query_lower) {
             let actual_idx = last_idx + idx;
             result.push_str(&line[last_idx..actual_idx]);
 
-            let matched_text = &line[actual_idx..actual_idx + query.len()];
+            let matched_text = &line[actual_idx..actual_idx + config.query.len()];
             result.push_str(&matched_text.bold().to_string());
 
-            last_idx = actual_idx + query.len();
+            last_idx = actual_idx + config.query.len();
         }
     } else {
         // Trova e colora le corrispondenze esatte
-        while let Some(idx) = line[last_idx..].find(query) {
+        while let Some(idx) = line[last_idx..].find(&config.query) {
             let actual_idx = last_idx + idx;
             result.push_str(&line[last_idx..actual_idx]);
 
-            let matched_text = &line[actual_idx..actual_idx + query.len()];
+            let matched_text = &line[actual_idx..actual_idx + config.query.len()];
             result.push_str(&matched_text.bold().to_string());
 
-            last_idx = actual_idx + query.len();
+            last_idx = actual_idx + config.query.len();
         }
     }
 
     // Aggiunge la parte rimanente della riga
     result.push_str(&line[last_idx..]);
     result
-}
-
-/// Search for the query in the contents and return a vector of matching lines.
-pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    contents
-        .lines()
-        .filter(|line| line.contains(query))
-        .collect()
-}
-
-/// Search for the query in the contents (case-insensitive) and return a vector of matching lines.
-pub fn search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    let query_lowercase = query.to_lowercase();
-    contents
-        .lines()
-        .filter(|line| line.to_lowercase().contains(&query_lowercase))
-        .collect()
 }
 
 #[cfg(test)]
@@ -163,7 +218,13 @@ Trust me.";
 
         let line = "rust is productive";
         let query = "rust";
-        let highlighted = highlight_query_in_line(line, query, false);
+        let config = Config {
+            query: query.to_string(),
+            filename: String::new(),
+            ignore_case: false,
+            recursive: false,
+        };
+        let highlighted = highlight_query_in_line(line, &config);
 
         // Verifica che la parola "rust" contenga i codici di escape ANSI del colore
         assert!(highlighted.contains(&query.bold().to_string()));
@@ -176,7 +237,13 @@ Trust me.";
 
         let line = "Rust is productive";
         let query = "rUsT";
-        let highlighted = highlight_query_in_line(line, query, true);
+        let config = Config {
+            query: query.to_string(),
+            filename: String::new(),
+            ignore_case: true,
+            recursive: false,
+        };
+        let highlighted = highlight_query_in_line(line, &config);
 
         // Deve preservare la "R" maiuscola originale di "Rust", ma applicare il colore
         let expected_match = "Rust".bold().to_string();
@@ -190,7 +257,13 @@ Trust me.";
 
         let line = "rust and rust again";
         let query = "rust";
-        let highlighted = highlight_query_in_line(line, query, false);
+        let config = Config {
+            query: query.to_string(),
+            filename: String::new(),
+            ignore_case: false,
+            recursive: false,
+        };
+        let highlighted = highlight_query_in_line(line, &config);
 
         let expected_match = "rust".bold().to_string();
         // Conta quante volte compare la sequenza formattata
