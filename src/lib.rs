@@ -29,7 +29,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
             let results = search_dir(&config, path)?;
 
             println!(
-                "{} risultati trovati:",
+                "{} occurrences found:",
                 results.len().to_string().cyan().bold()
             );
             for (file_path, line) in results {
@@ -50,7 +50,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
         let results = search_file(&config, path)?;
 
         println!(
-            "{} risultati trovati:",
+            "{} occurrences found:",
             results.len().to_string().cyan().bold()
         );
         for line in results {
