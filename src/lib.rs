@@ -161,6 +161,16 @@ fn highlight_query_in_line(line: &str, config: &Config) -> String {
 mod tests {
     use super::*;
 
+    /// Helper function to create a Config instance for testing purposes.
+    fn make_test_config(query: &str, ignore_case: bool, recursive: bool) -> Config {
+        Config {
+            query: query.to_string(),
+            filename: String::new(),
+            ignore_case,
+            recursive,
+        }
+    }
+
     /// search_returns_empty_when_no_match tests that the search function returns an empty vector when there are no matches for the query in the contents.
     #[test]
     fn search_returns_empty_when_no_match() {
@@ -276,5 +286,28 @@ Trust me.";
         let expected_match = "rust".bold().to_string();
         // Conta quante volte compare la sequenza formattata
         assert_eq!(highlighted.matches(&expected_match).count(), 2);
+    }
+
+    /// search_dir_finds_files_recursively tests that the search_dir function correctly finds files in a directory and its subdirectories when the recursive flag is set to true.
+    #[test]
+    fn search_dir_finds_files_recursively() -> Result<(), Box<dyn std::error::Error>> {
+        let temp_dir = std::env::temp_dir().join("minigrep_test_dir");
+        let sub_dir = temp_dir.join("subdir");
+        std::fs::create_dir_all(&sub_dir)?;
+
+        let file1 = temp_dir.join("file1.txt");
+        let file2 = sub_dir.join("file2.txt");
+
+        std::fs::write(&file1, "rust safe and fast")?;
+        std::fs::write(&file2, "learning rust deeply")?;
+
+        let config = make_test_config("rust", false, true);
+
+        let results = search_dir(&config, &temp_dir)?;
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
+
+        assert_eq!(results.len(), 2);
+        Ok(())
     }
 }
