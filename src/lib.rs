@@ -32,9 +32,12 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
                 "{} risultati trovati:",
                 results.len().to_string().cyan().bold()
             );
-            for line in results {
+            for (file_path, line) in results {
                 let highlighted = highlight_query_in_line(&line, &config);
-                println!("{highlighted}");
+                println!(
+                    "{}: {highlighted}",
+                    file_path.display().to_string().magenta()
+                );
             }
         } else {
             eprintln!(
@@ -60,7 +63,10 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// search_dir searches for the query in the specified directory and its subdirectories.
-fn search_dir(config: &Config, path: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+fn search_dir(
+    config: &Config,
+    path: &Path,
+) -> Result<Vec<(std::path::PathBuf, String)>, Box<dyn std::error::Error>> {
     let mut results = Vec::new();
 
     for entry in std::fs::read_dir(path)? {
@@ -72,7 +78,9 @@ fn search_dir(config: &Config, path: &Path) -> Result<Vec<String>, Box<dyn std::
             results.extend(sub_results);
         } else if entry_path.is_file() {
             let file_results = search_file(config, &entry_path)?;
-            results.extend(file_results);
+            for line in file_results {
+                results.push((entry_path.clone(), line));
+            }
         }
     }
 
