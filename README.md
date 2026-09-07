@@ -47,7 +47,7 @@ The compiled binary will be available under `./target/release/minigrep`.
 
 ##  Usage
 
-### 1. Basic Command
+### Basic Command
 
 ```bash
 cargo run -- <QUERY> <FILE_PATH>
@@ -59,13 +59,9 @@ Search for the pattern "duct" inside a file named "poem.txt":
 cargo run -- duct poem.txt
 ```
 
-### 2. Case-Insensitive Search
-Use the ignore case flag (`--ignore-case`, or `-i`) to perform a case-insensitive search:
-
-```bash
-# On Unix/Linux/macOS
-cargo run -- duct poem.txt --ignore-case
-```
+### Flags
+- `--ignore-case`, `-i`: Perform a case-insensitive search.
+- `--recursive`, `-r`: Search within directories and their subdirectories. (Note: <FILE_PATH> should be a directory)
 
 ---
 
