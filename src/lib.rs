@@ -18,6 +18,10 @@ pub struct Config {
     /// Perform a recursive search in directories
     #[arg(short = 'r', long = "recursive")]
     pub recursive: bool,
+
+    /// Display line numbers
+    #[arg(short = 'n', long = "line-number")]
+    pub line_number: bool,
 }
 
 /// Execute the search based on the provided configuration.
@@ -162,12 +166,18 @@ mod tests {
     use super::*;
 
     /// Helper function to create a Config instance for testing purposes.
-    fn make_test_config(query: &str, ignore_case: bool, recursive: bool) -> Config {
+    fn make_test_config(
+        query: &str,
+        ignore_case: bool,
+        recursive: bool,
+        line_number: bool,
+    ) -> Config {
         Config {
             query: query.to_string(),
             filename: String::new(),
             ignore_case,
             recursive,
+            line_number,
         }
     }
 
@@ -241,6 +251,7 @@ Trust me.";
             filename: String::new(),
             ignore_case: false,
             recursive: false,
+            line_number: false,
         };
         let highlighted = highlight_query_in_line(line, &config);
 
@@ -260,6 +271,7 @@ Trust me.";
             filename: String::new(),
             ignore_case: true,
             recursive: false,
+            line_number: false,
         };
         let highlighted = highlight_query_in_line(line, &config);
 
@@ -280,6 +292,7 @@ Trust me.";
             filename: String::new(),
             ignore_case: false,
             recursive: false,
+            line_number: false,
         };
         let highlighted = highlight_query_in_line(line, &config);
 
@@ -301,7 +314,7 @@ Trust me.";
         std::fs::write(&file1, "rust safe and fast")?;
         std::fs::write(&file2, "learning rust deeply")?;
 
-        let config = make_test_config("rust", false, true);
+        let config = make_test_config("rust", false, true, false);
 
         let results = search_dir(&config, &temp_dir)?;
 
