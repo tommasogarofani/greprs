@@ -107,7 +107,7 @@ fn search_dir(config: &Config, path: &Path) -> Result<Vec<LineReturn>, Box<dyn s
     Ok(results)
 }
 
-/// searche_file searches for the query in the specified file calling the appropriate search function based on the ignore_case flag.
+/// search_file searches for the query in the specified file calling the appropriate search function based on the ignore_case flag.
 fn search_file(
     config: &Config,
     path: &Path,
@@ -116,7 +116,7 @@ fn search_file(
     Ok(search(&config.query, &contents, config.ignore_case))
 }
 
-/// search searches for the query in the given contents and returns a vector of matching lines with their line numbers if the line_number.
+/// search searches for the query in the given contents and returns a vector of matching lines with their line numbers.
 /// if the ignore_case flag is set, it performs a case-insensitive search.
 fn search(query: &str, contents: &str, ignore_case: bool) -> Vec<(usize, String)> {
     if ignore_case {
