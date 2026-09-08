@@ -343,7 +343,7 @@ Trust me.";
         Ok(())
     }
 
-    /// search_returns_lines_with_line_numbers tests that the search function returns lines with line numbers when the line_number flag is set to true.
+    /// search_returns_lines_with_line_numbers tests that the search function returns matching lines with 1-based line numbers.
     #[test]
     fn search_returns_lines_with_line_numbers() {
         let query = "duct";
