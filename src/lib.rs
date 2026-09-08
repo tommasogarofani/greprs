@@ -1,7 +1,8 @@
-use std::path::Path;
-
 use clap::Parser;
 use colored::Colorize;
+use std::path::Path;
+
+type LineReturn = (std::path::PathBuf, usize, String);
 
 #[derive(Parser, Debug)]
 pub struct Config {
@@ -18,6 +19,10 @@ pub struct Config {
     /// Perform a recursive search in directories
     #[arg(short = 'r', long = "recursive")]
     pub recursive: bool,
+
+    /// Display line numbers
+    #[arg(short = 'n', long = "line-number")]
+    pub line_number: bool,
 }
 
 /// Execute the search based on the provided configuration.
@@ -32,12 +37,23 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
                 "{} occurrences found:",
                 results.len().to_string().cyan().bold()
             );
-            for (file_path, line) in results {
-                let highlighted = highlight_query_in_line(&line, &config);
-                println!(
-                    "{}: {highlighted}",
-                    file_path.display().to_string().magenta()
-                );
+            if config.line_number {
+                for (file_path, line_number, line) in results {
+                    let highlighted = highlight_query_in_line(&line, &config);
+                    println!(
+                        "{}:{}: {highlighted}",
+                        file_path.display().to_string().magenta(),
+                        line_number.to_string().cyan().bold()
+                    );
+                }
+            } else {
+                for (file_path, _line_number, line) in results {
+                    let highlighted = highlight_query_in_line(&line, &config);
+                    println!(
+                        "{}: {highlighted}",
+                        file_path.display().to_string().magenta(),
+                    );
+                }
             }
         } else {
             eprintln!(
@@ -53,9 +69,16 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
             "{} occurrences found:",
             results.len().to_string().cyan().bold()
         );
-        for line in results {
-            let highlighted = highlight_query_in_line(&line, &config);
-            println!("{highlighted}");
+        if config.line_number {
+            for (line_number, line) in results {
+                let highlighted = highlight_query_in_line(&line, &config);
+                println!("{line_number}: {highlighted}");
+            }
+        } else {
+            for (_line_number, line) in results {
+                let highlighted = highlight_query_in_line(&line, &config);
+                println!("{highlighted}");
+            }
         }
     }
 
@@ -63,10 +86,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// search_dir searches for the query in the specified directory and its subdirectories.
-fn search_dir(
-    config: &Config,
-    path: &Path,
-) -> Result<Vec<(std::path::PathBuf, String)>, Box<dyn std::error::Error>> {
+fn search_dir(config: &Config, path: &Path) -> Result<Vec<LineReturn>, Box<dyn std::error::Error>> {
     let mut results = Vec::new();
 
     for entry in std::fs::read_dir(path)? {
@@ -78,8 +98,8 @@ fn search_dir(
             results.extend(sub_results);
         } else if entry_path.is_file() {
             let file_results = search_file(config, &entry_path)?;
-            for line in file_results {
-                results.push((entry_path.clone(), line));
+            for (line_number, line) in file_results {
+                results.push((entry_path.clone(), line_number, line));
             }
         }
     }
@@ -87,34 +107,34 @@ fn search_dir(
     Ok(results)
 }
 
-/// searche_file searches for the query in the specified file calling the appropriate search function based on the ignore_case flag.
-fn search_file(config: &Config, path: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-    if config.ignore_case {
-        let contents = std::fs::read_to_string(path)?;
-        Ok(search_case_insensitive(&config.query, &contents))
+/// search_file searches for the query in the specified file calling the appropriate search function based on the ignore_case flag.
+fn search_file(
+    config: &Config,
+    path: &Path,
+) -> Result<Vec<(usize, String)>, Box<dyn std::error::Error>> {
+    let contents = std::fs::read_to_string(path)?;
+    Ok(search(&config.query, &contents, config.ignore_case))
+}
+
+/// search searches for the query in the given contents and returns a vector of matching lines with their line numbers.
+/// If the ignore_case flag is set, it performs a case-insensitive search.
+fn search(query: &str, contents: &str, ignore_case: bool) -> Vec<(usize, String)> {
+    if ignore_case {
+        let query_lowercase = query.to_lowercase();
+        contents
+            .lines()
+            .enumerate()
+            .filter(|(_, line)| line.to_lowercase().contains(&query_lowercase))
+            .map(|(idx, line)| (idx + 1, line.to_string()))
+            .collect()
     } else {
-        let contents = std::fs::read_to_string(path)?;
-        Ok(search(&config.query, &contents))
+        contents
+            .lines()
+            .enumerate()
+            .filter(|(_, line)| line.contains(query))
+            .map(|(idx, line)| (idx + 1, line.to_string()))
+            .collect()
     }
-}
-
-/// Search for the query in the contents and return a vector of matching lines.
-fn search(query: &str, contents: &str) -> Vec<String> {
-    contents
-        .lines()
-        .filter(|line| line.contains(query))
-        .map(|line| line.to_string())
-        .collect()
-}
-
-/// Search for the query in the contents (case-insensitive) and return a vector of matching lines.
-fn search_case_insensitive(query: &str, contents: &str) -> Vec<String> {
-    let query_lowercase = query.to_lowercase();
-    contents
-        .lines()
-        .filter(|line| line.to_lowercase().contains(&query_lowercase))
-        .map(|line| line.to_string())
-        .collect()
 }
 
 /// highlight_query_in_line highlights the occurrences of the query in the given line
@@ -162,12 +182,18 @@ mod tests {
     use super::*;
 
     /// Helper function to create a Config instance for testing purposes.
-    fn make_test_config(query: &str, ignore_case: bool, recursive: bool) -> Config {
+    fn make_test_config(
+        query: &str,
+        ignore_case: bool,
+        recursive: bool,
+        line_number: bool,
+    ) -> Config {
         Config {
             query: query.to_string(),
             filename: String::new(),
             ignore_case,
             recursive,
+            line_number,
         }
     }
 
@@ -180,7 +206,7 @@ The quick brown fox jumps over the lazy dog.
 This small file contains simple words for testing purposes.
 Nothing in these lines will match the target string.";
 
-        assert!(search(query, contents).is_empty());
+        assert!(search(query, contents, false).is_empty());
     }
 
     /// search_returns_single_line_match tests that the search function returns a vector containing the single matching line when there is one match for the query in the contents.
@@ -192,7 +218,10 @@ Rust:
 safe, fast, productive.
 Pick three.";
 
-        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
+        assert_eq!(
+            vec![(2, "safe, fast, productive.".to_string())],
+            search(query, contents, false)
+        );
     }
 
     /// search_returns_multiple_lines_match tests that the search function returns a vector containing all matching lines when there are multiple matches for the query in the contents.
@@ -205,11 +234,11 @@ helps us create a highly
 productive manufacturing process.";
 
         let expected = vec![
-            "This new ductile material",
-            "productive manufacturing process.",
+            (1, "This new ductile material".to_string()),
+            (3, "productive manufacturing process.".to_string()),
         ];
 
-        assert_eq!(expected, search(query, contents));
+        assert_eq!(expected, search(query, contents, false));
     }
 
     /// search_case_insensitive_matches_mixed_case tests that the search_case_insensitive function correctly matches lines regardless of case, returning all matching lines.
@@ -223,8 +252,8 @@ Pick three.
 Trust me.";
 
         assert_eq!(
-            vec!["Rust:", "Trust me."],
-            search_case_insensitive(query, contents)
+            vec![(1, "Rust:".to_string()), (4, "Trust me.".to_string())],
+            search(query, contents, true)
         );
     }
 
@@ -241,6 +270,7 @@ Trust me.";
             filename: String::new(),
             ignore_case: false,
             recursive: false,
+            line_number: false,
         };
         let highlighted = highlight_query_in_line(line, &config);
 
@@ -260,6 +290,7 @@ Trust me.";
             filename: String::new(),
             ignore_case: true,
             recursive: false,
+            line_number: false,
         };
         let highlighted = highlight_query_in_line(line, &config);
 
@@ -280,6 +311,7 @@ Trust me.";
             filename: String::new(),
             ignore_case: false,
             recursive: false,
+            line_number: false,
         };
         let highlighted = highlight_query_in_line(line, &config);
 
@@ -301,7 +333,7 @@ Trust me.";
         std::fs::write(&file1, "rust safe and fast")?;
         std::fs::write(&file2, "learning rust deeply")?;
 
-        let config = make_test_config("rust", false, true);
+        let config = make_test_config("rust", false, true, false);
 
         let results = search_dir(&config, &temp_dir)?;
 
@@ -309,5 +341,33 @@ Trust me.";
 
         assert_eq!(results.len(), 2);
         Ok(())
+    }
+
+    /// search_returns_lines_with_line_numbers tests that the search function returns matching lines with 1-based line numbers.
+    #[test]
+    fn search_returns_lines_with_line_numbers() {
+        let query = "duct";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.";
+
+        let results = search(query, contents, false);
+        let expected = vec![(2, "safe, fast, productive.".to_string())];
+        assert_eq!(expected, results);
+    }
+
+    /// search_case_insensitive_returns_lines_with_line_numbers tests that the search_case_insensitive function returns lines with line numbers when the line_number flag is set to true.
+    #[test]
+    fn search_case_insensitive_returns_lines_with_line_numbers() {
+        let query = "rUsT";
+        let contents = "\
+Rust:
+safe, fast, productive.Pick three.
+Trust me.";
+
+        let results = search(query, contents, true);
+        let expected = vec![(1, "Rust:".to_string()), (3, "Trust me.".to_string())];
+        assert_eq!(expected, results);
     }
 }
