@@ -117,7 +117,7 @@ fn search_file(
 }
 
 /// search searches for the query in the given contents and returns a vector of matching lines with their line numbers.
-/// if the ignore_case flag is set, it performs a case-insensitive search.
+/// If the ignore_case flag is set, it performs a case-insensitive search.
 fn search(query: &str, contents: &str, ignore_case: bool) -> Vec<(usize, String)> {
     if ignore_case {
         let query_lowercase = query.to_lowercase();
