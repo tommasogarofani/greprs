@@ -37,12 +37,23 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
                 "{} occurrences found:",
                 results.len().to_string().cyan().bold()
             );
-            for (file_path, line) in results {
-                let highlighted = highlight_query_in_line(&line, &config);
-                println!(
-                    "{}: {highlighted}",
-                    file_path.display().to_string().magenta()
-                );
+            if config.line_number {
+                for (file_path, line_number, line) in results {
+                    let highlighted = highlight_query_in_line(&line, &config);
+                    println!(
+                        "{}:{}: {highlighted}",
+                        file_path.display().to_string().magenta(),
+                        line_number.to_string().cyan().bold()
+                    );
+                }
+            } else {
+                for (file_path, _line_number, line) in results {
+                    let highlighted = highlight_query_in_line(&line, &config);
+                    println!(
+                        "{}: {highlighted}",
+                        file_path.display().to_string().magenta(),
+                    );
+                }
             }
         } else {
             eprintln!(
@@ -58,9 +69,16 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
             "{} occurrences found:",
             results.len().to_string().cyan().bold()
         );
-        for line in results {
-            let highlighted = highlight_query_in_line(&line, &config);
-            println!("{highlighted}");
+        if config.line_number {
+            for (line_number, line) in results {
+                let highlighted = highlight_query_in_line(&line, &config);
+                println!("{line_number}: {highlighted}");
+            }
+        } else {
+            for (_line_number, line) in results {
+                let highlighted = highlight_query_in_line(&line, &config);
+                println!("{highlighted}");
+            }
         }
     }
 
