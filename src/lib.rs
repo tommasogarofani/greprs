@@ -323,4 +323,32 @@ Trust me.";
         assert_eq!(results.len(), 2);
         Ok(())
     }
+
+    /// search_returns_lines_with_line_numbers tests that the search function returns lines with line numbers when the line_number flag is set to true.
+    #[test]
+    fn search_returns_lines_with_line_numbers() {
+        let query = "duct";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.";
+
+        let results = search(query, contents);
+        let expected = vec!["2: safe, fast, productive."];
+        assert_eq!(expected, results);
+    }
+
+    /// search_case_insensitive_returns_lines_with_line_numbers tests that the search_case_insensitive function returns lines with line numbers when the line_number flag is set to true.
+    #[test]
+    fn search_case_insensitive_returns_lines_with_line_numbers() {
+        let query = "rUsT";
+        let contents = "\
+Rust:
+safe, fast, productive.Pick three.
+Trust me.";
+
+        let results = search_case_insensitive(query, contents);
+        let expected = vec!["1: Rust:", "3: Trust me."];
+        assert_eq!(expected, results);
+    }
 }
