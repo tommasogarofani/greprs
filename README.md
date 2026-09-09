@@ -11,13 +11,17 @@ This project was built as a hands-on exercise to learn Rust fundamentals, memory
 ```text
 minigrep/
 ├── src/
-│   ├── lib.rs                  # Core business logic (config parsing, file reading, search algorithms)
-│   └── main.rs                 # Entry point (CLI argument parsing, I/O handling)
+│   ├── lib.rs            # Core business logic (config parsing, file reading, search algorithms)
+│   └── main.rs           # Entry point (CLI argument parsing, I/O handling)
 ├── tests/
-│   └── integration_tests.rs    # Integration tests for the entire application
-├── Cargo.lock                  # Cargo's lock file for reproducible builds (auto-managed)
-├── Cargo.toml                  # Rust package manifest
-├── Makefile                    # Optional build automation (e.g., for testing, building, cleaning)
+│   ├── common/
+│   │   └── mod.rs        # Helper/utility condivise dai test
+│   ├── cli_search.rs     # Test di integrazione per le ricerche di testo
+│   ├── cli_recursive.rs  # Test per la modalità ricorsiva (-r)
+│   └── cli_flags.rs      # Test per le varie flag (--ignore-case, --line-number)
+├── Cargo.lock            # Cargo's lock file for reproducible builds (auto-managed)
+├── Cargo.toml            # Rust package manifest
+├── Makefile              # Optional build automation (e.g., for testing, building, cleaning)
 └── README.md
 ```
 
