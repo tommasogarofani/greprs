@@ -10,7 +10,7 @@ pub struct Config {
     pub query: String,
 
     /// Path to the file to search
-    pub filename: String,
+    pub file_path: String,
 
     /// Perform a case-insensitive search
     #[arg(short = 'i', long = "ignore-case")]
@@ -28,7 +28,7 @@ pub struct Config {
 /// Execute the search based on the provided configuration.
 /// Returns a `Result` with an error if the file cannot be read or if there is an error during the search.
 pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
-    let path = Path::new(&config.filename);
+    let path = Path::new(&config.file_path);
     if path.is_dir() {
         if config.recursive {
             let results = search_dir(&config, path)?;
@@ -58,7 +58,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
         } else {
             eprintln!(
                 "Error: '{}' is a directory. Use the --recursive (-r) flag to search in directories.",
-                config.filename
+                config.file_path
             );
             return Err("Directory provided without --recursive flag".into());
         }
@@ -190,7 +190,7 @@ mod tests {
     ) -> Config {
         Config {
             query: query.to_string(),
-            filename: String::new(),
+            file_path: String::new(),
             ignore_case,
             recursive,
             line_number,
@@ -267,7 +267,7 @@ Trust me.";
         let query = "rust";
         let config = Config {
             query: query.to_string(),
-            filename: String::new(),
+            file_path: String::new(),
             ignore_case: false,
             recursive: false,
             line_number: false,
@@ -287,7 +287,7 @@ Trust me.";
         let query = "rUsT";
         let config = Config {
             query: query.to_string(),
-            filename: String::new(),
+            file_path: String::new(),
             ignore_case: true,
             recursive: false,
             line_number: false,
@@ -308,7 +308,7 @@ Trust me.";
         let query = "rust";
         let config = Config {
             query: query.to_string(),
-            filename: String::new(),
+            file_path: String::new(),
             ignore_case: false,
             recursive: false,
             line_number: false,
