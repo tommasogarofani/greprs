@@ -1,4 +1,4 @@
-# MiniGrep
+# Greprs
 
 A fast, lightweight command-line text search utility written in **Rust**, inspired by the classic `grep` tool.
 
@@ -9,14 +9,20 @@ This project was built as a hands-on exercise to learn Rust fundamentals, memory
 ## Repo Architecture
 
 ```text
-minigrep/
+greprs/
 ├── src/
-│   ├── lib.rs     # Core business logic (config parsing, file reading, search algorithms)
-│   └── main.rs    # Entry point (CLI argument parsing, I/O handling)
-├── Cargo.lock
-├── Cargo.toml
-├── Makefile
-└── README.md
+│   ├── lib.rs            # Core business logic (config parsing, file reading, search algorithms)
+│   └── main.rs           # Entry point (CLI argument parsing, I/O handling)
+├── tests/
+│   ├── common/
+│   │   └── mod.rs        # Helper/utility condivise dai test
+│   ├── flags.rs          # Test per le varie flag (--ignore-case, --line-number)
+│   ├── recursive.rs      # Test per la modalità ricorsiva (-r)
+│   └── search.rs         # Test di integrazione per le ricerche di testo
+├── Cargo.lock            # Cargo's lock file for reproducible builds (auto-managed)
+├── Cargo.toml            # Rust package manifest
+├── Makefile              # Optional build automation (e.g., for testing, building, cleaning)
+└── README.md             # Project documentation
 ```
 
 ---
@@ -26,7 +32,7 @@ minigrep/
 * **Pattern Matching:** Search for specific string patterns inside target text files.
 * **Case-Insensitive Search:** Optional environment variable support (`IGNORE_CASE=1`) to ignore case sensitivity during searches.
 * **Standard Error Separation:** Error messages are sent directly to `stderr`, while matching results are routed to `stdout`.
-* **Zero External Dependencies:** Built entirely using Rust's standard library (`std`).
+* **Minimal Dependencies:** Built using clap for CLI parsing and colored for beautiful output.
 
 ---
 
@@ -35,13 +41,13 @@ Ensure you have Rust and Cargo installed. If not, follow the instructions at [ht
 
 ```bash
 # Clone the repository
-git clone https://github.com/tommasogarofani/minigrep.git
-cd minigrep
+git clone https://github.com/tommasogarofani/greprs.git
+cd greprs
 
 # Build optimized binary
 cargo build --release
 ```
-The compiled binary will be available under `./target/release/minigrep`.
+The compiled binary will be available under `./target/release/greprs`.
 
 ---
 
@@ -86,4 +92,4 @@ Contributions are welcome! If you find a bug or have a feature request, please o
 
 ## Credits
 
-Tommaso Garofani [@tommasogarofani](https://github.com/tommasogarofani) - Original author and maintainer of MiniGrep.
+Tommaso Garofani [@tommasogarofani](https://github.com/tommasogarofani) - Original author and maintainer of Greprs.

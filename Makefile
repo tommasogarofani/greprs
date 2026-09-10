@@ -1,5 +1,3 @@
-# Nome del file Makefile per il progetto minigrep
-
 .PHONY: all check fmt lint test build release doc clean run help
 
 # Comando di default eseguito lanciando semplicemente `make`
