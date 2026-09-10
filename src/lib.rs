@@ -323,7 +323,7 @@ Trust me.";
     /// search_dir_finds_files_recursively tests that the search_dir function correctly finds files in a directory and its subdirectories when the recursive flag is set to true.
     #[test]
     fn search_dir_finds_files_recursively() -> Result<(), Box<dyn std::error::Error>> {
-        let temp_dir = std::env::temp_dir().join("minigrep_test_dir");
+        let temp_dir = std::env::temp_dir().join("greprs_test_dir");
         let sub_dir = temp_dir.join("subdir");
         std::fs::create_dir_all(&sub_dir)?;
 
