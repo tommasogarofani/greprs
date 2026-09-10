@@ -9,20 +9,20 @@ This project was built as a hands-on exercise to learn Rust fundamentals, memory
 ## Repo Architecture
 
 ```text
-Greprs/
+greprs/
 ├── src/
 │   ├── lib.rs            # Core business logic (config parsing, file reading, search algorithms)
 │   └── main.rs           # Entry point (CLI argument parsing, I/O handling)
 ├── tests/
 │   ├── common/
 │   │   └── mod.rs        # Helper/utility condivise dai test
-│   ├── cli_search.rs     # Test di integrazione per le ricerche di testo
-│   ├── cli_recursive.rs  # Test per la modalità ricorsiva (-r)
-│   └── cli_flags.rs      # Test per le varie flag (--ignore-case, --line-number)
+│   ├── flags.rs          # Test per le varie flag (--ignore-case, --line-number)
+│   ├── recursive.rs      # Test per la modalità ricorsiva (-r)
+│   └── search.rs         # Test di integrazione per le ricerche di testo
 ├── Cargo.lock            # Cargo's lock file for reproducible builds (auto-managed)
 ├── Cargo.toml            # Rust package manifest
 ├── Makefile              # Optional build automation (e.g., for testing, building, cleaning)
-└── README.md
+└── README.md             # Project documentation
 ```
 
 ---
@@ -32,7 +32,7 @@ Greprs/
 * **Pattern Matching:** Search for specific string patterns inside target text files.
 * **Case-Insensitive Search:** Optional environment variable support (`IGNORE_CASE=1`) to ignore case sensitivity during searches.
 * **Standard Error Separation:** Error messages are sent directly to `stderr`, while matching results are routed to `stdout`.
-* **Zero External Dependencies:** Built entirely using Rust's standard library (`std`).
+* **Minimal Dependencies:** Built using clap for CLI parsing and colored for beautiful output.
 
 ---
 
