@@ -1,6 +1,6 @@
 mod common;
 use common::{TestingEnvironment, build_config};
-use minigrep::run;
+use greprs::run;
 
 #[test]
 fn test_search_finds_single_match() {

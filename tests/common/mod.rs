@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use minigrep::Config;
+use greprs::Config;
 use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;
