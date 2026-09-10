@@ -1,4 +1,4 @@
-# MiniGrep
+# Greprs
 
 A fast, lightweight command-line text search utility written in **Rust**, inspired by the classic `grep` tool.
 
@@ -9,7 +9,7 @@ This project was built as a hands-on exercise to learn Rust fundamentals, memory
 ## Repo Architecture
 
 ```text
-minigrep/
+Greprs/
 ├── src/
 │   ├── lib.rs            # Core business logic (config parsing, file reading, search algorithms)
 │   └── main.rs           # Entry point (CLI argument parsing, I/O handling)
@@ -41,13 +41,13 @@ Ensure you have Rust and Cargo installed. If not, follow the instructions at [ht
 
 ```bash
 # Clone the repository
-git clone https://github.com/tommasogarofani/minigrep.git
-cd minigrep
+git clone https://github.com/tommasogarofani/greprs.git
+cd greprs
 
 # Build optimized binary
 cargo build --release
 ```
-The compiled binary will be available under `./target/release/minigrep`.
+The compiled binary will be available under `./target/release/greprs`.
 
 ---
 
@@ -92,4 +92,4 @@ Contributions are welcome! If you find a bug or have a feature request, please o
 
 ## Credits
 
-Tommaso Garofani [@tommasogarofani](https://github.com/tommasogarofani) - Original author and maintainer of MiniGrep.
+Tommaso Garofani [@tommasogarofani](https://github.com/tommasogarofani) - Original author and maintainer of Greprs.
