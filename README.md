@@ -83,6 +83,35 @@ cargo test
 ## Contributing
 Contributions are welcome! If you find a bug or have a feature request, please open an issue. For code contributions, fork the repository and submit a pull request.
 
+## Contributing
+Contributions are welcome! If you find a bug or have a feature request, please open an issue. For code contributions, fork the repository and submit a pull request.
+
+### Branching & Release Workflow
+We follow a Git flow model focused on feature isolation and Semantic Versioning:
+
+1. **Development Branches (`feature/<name>` or `bugfix/<name>`):**
+   * Create a new branch from `develop` for any new feature or fix (e.g., `feature/invert-match-flag`).
+   * Never commit directly to `master` or `develop`.
+
+2. **Integration (`develop`):**
+   * Submit a Pull Request targeting the `develop` branch.
+   * Ensure all tests pass (`cargo test`) before requesting a review or merging.
+
+3. **Preparing a Release (`Cargo.toml`):**
+   * When features on `develop` are ready for a new release, update the `version` field in `Cargo.toml` according to [Semantic Versioning](https://semver.org/):
+     * **MAJOR** (`X.0.0`): Breaking changes (e.g., major CLI restructuring or breaking lib API changes).
+     * **MINOR** (`1.X.0`): New backward-compatible features (e.g., adding a new CLI flag like `-n` or `-i`).
+     * **PATCH** (`1.0.X`): Backward-compatible bug fixes or minor documentation updates.
+   * Commit the version bump on `develop` (e.g., `git commit -m "chore: bump version to 1.4.0"`).
+
+4. **Publishing Releases (`master`):**
+   * Merge `develop` into `master`, tag the merge commit with the version number (e.g., `v1.4.0`), and push the tag to publish the new GitHub Release.
+
+### Rules for Contributions:
+1. Follow Rust's best practices and idioms.
+2. Make atomic commits with clear commit messages.
+3. Ensure all tests pass before submitting a pull request (`cargo test`).
+
 ### Rules for Contributions:
 1. Follow Rust's best practices and idioms.
 2. Make atomic commits with clear commit messages.
