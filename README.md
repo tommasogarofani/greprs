@@ -66,6 +66,7 @@ cargo run -- duct poem.txt
 ```
 
 ### Flags
+- `--help`, `-h`: Display help information.
 - `--ignore-case`, `-i`: Perform a case-insensitive search.
 - `--line-number`, `-n`: Display line numbers for each match.
 - `--recursive`, `-r`: Search within directories and their subdirectories. (Note: <FILE_PATH> should be a directory)
@@ -79,9 +80,6 @@ cargo test
 ```
 
 ---
-
-## Contributing
-Contributions are welcome! If you find a bug or have a feature request, please open an issue. For code contributions, fork the repository and submit a pull request.
 
 ## Contributing
 Contributions are welcome! If you find a bug or have a feature request, please open an issue. For code contributions, fork the repository and submit a pull request.
@@ -111,11 +109,6 @@ We follow a Git flow model focused on feature isolation and Semantic Versioning:
 1. Follow Rust's best practices and idioms.
 2. Make atomic commits with clear commit messages.
 3. Ensure all tests pass before submitting a pull request (`cargo test`).
-
-### Rules for Contributions:
-1. Follow Rust's best practices and idioms.
-2. Make atomic commits with clear commit messages.
-3. Ensure all tests pass before submitting a pull request.
 
 ---
 
