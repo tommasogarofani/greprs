@@ -5,11 +5,21 @@ use std::path::Path;
 type LineReturn = (std::path::PathBuf, usize, String);
 
 #[derive(Parser, Debug)]
+#[command(
+    author,
+    version,
+    about = "Search for patterns in files or directories.",
+    long_about = "\
+Search for PATTERNS in FILE.
+Example: greprs -i 'hello world' main.c."
+)]
 pub struct Config {
     /// String to search for
+    #[arg(value_name = "PATTERNS")]
     pub query: String,
 
     /// Path to the file to search
+    #[arg(value_name = "FILE")]
     pub file_path: String,
 
     /// Perform a case-insensitive search
