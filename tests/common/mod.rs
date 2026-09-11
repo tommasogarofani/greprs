@@ -49,12 +49,14 @@ pub fn build_config(
     ignore_case: bool,
     recursive: bool,
     line_number: bool,
+    invert_match: bool,
 ) -> Config {
     Config {
         query: query.to_string(),
         file_path: file_path.to_string_lossy().to_string(),
-        ignore_case: ignore_case,
-        recursive: recursive,
-        line_number: line_number,
+        ignore_case,
+        recursive,
+        line_number,
+        invert_match,
     }
 }
