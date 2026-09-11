@@ -70,6 +70,7 @@ cargo run -- duct poem.txt
 - `--ignore-case`, `-i`: Perform a case-insensitive search.
 - `--line-number`, `-n`: Display line numbers for each match.
 - `--recursive`, `-r`: Search within directories and their subdirectories. (Note: <FILE_PATH> should be a directory)
+- `--invert-match`, `-v`: Invert the match, showing lines that do not contain the pattern.
 - `--version`, `-V`: Display the current version of Greprs.
 
 ---

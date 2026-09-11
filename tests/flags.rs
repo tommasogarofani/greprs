@@ -8,7 +8,7 @@ fn test_ignore_case_flag() {
     let env = TestingEnvironment::new_file(content);
 
     // Passiamo ignore_case = true
-    let config = build_config(env.file_path.clone(), "safe", true, false, false);
+    let config = build_config(env.file_path.clone(), "safe", true, false, false, false);
 
     let result = run(config);
     assert!(result.is_ok());
@@ -20,7 +20,18 @@ fn test_line_number_flag() {
     let env = TestingEnvironment::new_file(content);
 
     // Passiamo line_number = true
-    let config = build_config(env.file_path.clone(), "Target", false, false, true);
+    let config = build_config(env.file_path.clone(), "Target", false, false, true, false);
+
+    let result = run(config);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_invert_match_flag() {
+    let content = "Rust:\nSafe, Fast, Productive.";
+    let env = TestingEnvironment::new_file(content);
+
+    let config = build_config(env.file_path.clone(), "Safe", false, false, false, true);
 
     let result = run(config);
     assert!(result.is_ok());
