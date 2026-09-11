@@ -127,27 +127,56 @@ fn search_file(
     path: &Path,
 ) -> Result<Vec<(usize, String)>, Box<dyn std::error::Error>> {
     let contents = std::fs::read_to_string(path)?;
-    Ok(search(&config.query, &contents, config.ignore_case))
+    Ok(search(
+        &config.query,
+        &contents,
+        config.ignore_case,
+        config.invert_match,
+    ))
 }
 
 /// search searches for the query in the given contents and returns a vector of matching lines with their line numbers.
 /// If the ignore_case flag is set, it performs a case-insensitive search.
-fn search(query: &str, contents: &str, ignore_case: bool) -> Vec<(usize, String)> {
+fn search(
+    query: &str,
+    contents: &str,
+    ignore_case: bool,
+    invert_search: bool,
+) -> Vec<(usize, String)> {
     if ignore_case {
-        let query_lowercase = query.to_lowercase();
-        contents
-            .lines()
-            .enumerate()
-            .filter(|(_, line)| line.to_lowercase().contains(&query_lowercase))
-            .map(|(idx, line)| (idx + 1, line.to_string()))
-            .collect()
+        if invert_search {
+            let query_lowercase = query.to_lowercase();
+            contents
+                .lines()
+                .enumerate()
+                .filter(|(_, line)| !line.to_lowercase().contains(&query_lowercase))
+                .map(|(idx, line)| (idx + 1, line.to_string()))
+                .collect()
+        } else {
+            let query_lowercase = query.to_lowercase();
+            contents
+                .lines()
+                .enumerate()
+                .filter(|(_, line)| line.to_lowercase().contains(&query_lowercase))
+                .map(|(idx, line)| (idx + 1, line.to_string()))
+                .collect()
+        }
     } else {
-        contents
-            .lines()
-            .enumerate()
-            .filter(|(_, line)| line.contains(query))
-            .map(|(idx, line)| (idx + 1, line.to_string()))
-            .collect()
+        if invert_search {
+            contents
+                .lines()
+                .enumerate()
+                .filter(|(_, line)| !line.contains(query))
+                .map(|(idx, line)| (idx + 1, line.to_string()))
+                .collect()
+        } else {
+            contents
+                .lines()
+                .enumerate()
+                .filter(|(_, line)| line.contains(query))
+                .map(|(idx, line)| (idx + 1, line.to_string()))
+                .collect()
+        }
     }
 }
 
@@ -222,7 +251,7 @@ The quick brown fox jumps over the lazy dog.
 This small file contains simple words for testing purposes.
 Nothing in these lines will match the target string.";
 
-        assert!(search(query, contents, false).is_empty());
+        assert!(search(query, contents, false, false).is_empty());
     }
 
     /// search_returns_single_line_match tests that the search function returns a vector containing the single matching line when there is one match for the query in the contents.
@@ -236,7 +265,7 @@ Pick three.";
 
         assert_eq!(
             vec![(2, "safe, fast, productive.".to_string())],
-            search(query, contents, false)
+            search(query, contents, false, false)
         );
     }
 
@@ -254,7 +283,7 @@ productive manufacturing process.";
             (3, "productive manufacturing process.".to_string()),
         ];
 
-        assert_eq!(expected, search(query, contents, false));
+        assert_eq!(expected, search(query, contents, false, false));
     }
 
     /// search_case_insensitive_matches_mixed_case tests that the search_case_insensitive function correctly matches lines regardless of case, returning all matching lines.
@@ -269,7 +298,7 @@ Trust me.";
 
         assert_eq!(
             vec![(1, "Rust:".to_string()), (4, "Trust me.".to_string())],
-            search(query, contents, true)
+            search(query, contents, true, false)
         );
     }
 
@@ -371,7 +400,7 @@ Rust:
 safe, fast, productive.
 Pick three.";
 
-        let results = search(query, contents, false);
+        let results = search(query, contents, false, false);
         let expected = vec![(2, "safe, fast, productive.".to_string())];
         assert_eq!(expected, results);
     }
@@ -385,7 +414,7 @@ Rust:
 safe, fast, productive.Pick three.
 Trust me.";
 
-        let results = search(query, contents, true);
+        let results = search(query, contents, true, false);
         let expected = vec![(1, "Rust:".to_string()), (3, "Trust me.".to_string())];
         assert_eq!(expected, results);
     }
@@ -393,17 +422,18 @@ Trust me.";
     /// search_invert_match_returns_lines_without_query tests that the search function returns lines that do not contain the query when the invert_match flag is set to true.
     #[test]
     fn search_invert_match_returns_lines_without_query() {
-        let query = "rust";
+        let query = "Rust";
         let contents = "\
 Rust:
 safe, fast, productive.
 Pick three.
 Trust me.";
 
-        let results = search(query, contents, false);
+        let results = search(query, contents, false, true);
         let expected = vec![
             (2, "safe, fast, productive.".to_string()),
             (3, "Pick three.".to_string()),
+            (4, "Trust me.".to_string()),
         ];
         assert_eq!(expected, results);
     }
