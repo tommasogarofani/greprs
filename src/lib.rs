@@ -33,6 +33,10 @@ pub struct Config {
     /// Display line numbers
     #[arg(short = 'n', long = "line-number")]
     pub line_number: bool,
+
+    /// Invert the match, showing lines that do not contain the pattern
+    #[arg(short = 'v', long = "invert-match")]
+    pub invert_match: bool,
 }
 
 /// Execute the search based on the provided configuration.
@@ -197,6 +201,7 @@ mod tests {
         ignore_case: bool,
         recursive: bool,
         line_number: bool,
+        invert_match: bool,
     ) -> Config {
         Config {
             query: query.to_string(),
@@ -204,6 +209,7 @@ mod tests {
             ignore_case,
             recursive,
             line_number,
+            invert_match,
         }
     }
 
@@ -281,6 +287,7 @@ Trust me.";
             ignore_case: false,
             recursive: false,
             line_number: false,
+            invert_match: false,
         };
         let highlighted = highlight_query_in_line(line, &config);
 
@@ -301,6 +308,7 @@ Trust me.";
             ignore_case: true,
             recursive: false,
             line_number: false,
+            invert_match: false,
         };
         let highlighted = highlight_query_in_line(line, &config);
 
@@ -322,6 +330,7 @@ Trust me.";
             ignore_case: false,
             recursive: false,
             line_number: false,
+            invert_match: false,
         };
         let highlighted = highlight_query_in_line(line, &config);
 
@@ -343,7 +352,7 @@ Trust me.";
         std::fs::write(&file1, "rust safe and fast")?;
         std::fs::write(&file2, "learning rust deeply")?;
 
-        let config = make_test_config("rust", false, true, false);
+        let config = make_test_config("rust", false, true, false, false);
 
         let results = search_dir(&config, &temp_dir)?;
 
@@ -378,6 +387,24 @@ Trust me.";
 
         let results = search(query, contents, true);
         let expected = vec![(1, "Rust:".to_string()), (3, "Trust me.".to_string())];
+        assert_eq!(expected, results);
+    }
+
+    /// search_invert_match_returns_lines_without_query tests that the search function returns lines that do not contain the query when the invert_match flag is set to true.
+    #[test]
+    fn search_invert_match_returns_lines_without_query() {
+        let query = "rust";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.
+Trust me.";
+
+        let results = search(query, contents, false);
+        let expected = vec![
+            (2, "safe, fast, productive.".to_string()),
+            (3, "Pick three.".to_string()),
+        ];
         assert_eq!(expected, results);
     }
 }
