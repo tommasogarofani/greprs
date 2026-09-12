@@ -53,7 +53,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
             );
             if config.line_number {
                 for (file_path, line_number, line) in results {
-                    let highlighted = highlight_query_in_line(&line, &config);
+                    let highlighted = if !config.invert_match {
+                        highlight_query_in_line(&line, &config)
+                    } else {
+                        line
+                    };
                     println!(
                         "{}:{}: {highlighted}",
                         file_path.display().to_string().magenta(),
@@ -62,7 +66,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
                 }
             } else {
                 for (file_path, _line_number, line) in results {
-                    let highlighted = highlight_query_in_line(&line, &config);
+                    let highlighted = if !config.invert_match {
+                        highlight_query_in_line(&line, &config)
+                    } else {
+                        line
+                    };
                     println!(
                         "{}: {highlighted}",
                         file_path.display().to_string().magenta(),
@@ -85,12 +93,20 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
         );
         if config.line_number {
             for (line_number, line) in results {
-                let highlighted = highlight_query_in_line(&line, &config);
+                let highlighted = if !config.invert_match {
+                    highlight_query_in_line(&line, &config)
+                } else {
+                    line
+                };
                 println!("{line_number}: {highlighted}");
             }
         } else {
             for (_line_number, line) in results {
-                let highlighted = highlight_query_in_line(&line, &config);
+                let highlighted = if !config.invert_match {
+                    highlight_query_in_line(&line, &config)
+                } else {
+                    line
+                };
                 println!("{highlighted}");
             }
         }
