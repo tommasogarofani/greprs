@@ -206,17 +206,36 @@ fn highlight_query_in_line(line: &str, config: &Config) -> String {
     let mut last_idx = 0;
 
     if config.ignore_case {
-        let line_lower = line.to_lowercase();
+        let mut line_lower = String::new();
+        let mut lower_ranges = Vec::new();
+        for (start, character) in line.char_indices() {
+            let end = start + character.len_utf8();
+            let lower_start = line_lower.len();
+            line_lower.extend(character.to_lowercase());
+            lower_ranges.push((lower_start, line_lower.len(), start, end));
+        }
         let query_lower = config.query.to_lowercase();
+        let mut lower_last_idx = 0;
 
-        while let Some(idx) = line_lower[last_idx..].find(&query_lower) {
-            let actual_idx = last_idx + idx;
-            result.push_str(&line[last_idx..actual_idx]);
+        while let Some(idx) = line_lower[lower_last_idx..].find(&query_lower) {
+            let lower_start = lower_last_idx + idx;
+            let lower_end = lower_start + query_lower.len();
+            let (_, _, actual_start, _) = lower_ranges
+                .iter()
+                .find(|(start, end, _, _)| *end > lower_start && *start < lower_end)
+                .expect("case-insensitive match must map to the original line");
+            let (_, _, _, actual_end) = lower_ranges
+                .iter()
+                .rev()
+                .find(|(start, end, _, _)| *end > lower_start && *start < lower_end)
+                .expect("case-insensitive match must map to the original line");
 
-            let matched_text = &line[actual_idx..actual_idx + config.query.len()];
+            result.push_str(&line[last_idx..*actual_start]);
+            let matched_text = &line[*actual_start..*actual_end];
             result.push_str(&matched_text.bold().to_string());
 
-            last_idx = actual_idx + config.query.len();
+            last_idx = *actual_end;
+            lower_last_idx = lower_end;
         }
     } else {
         // Trova e colora le corrispondenze esatte
@@ -360,6 +379,24 @@ Trust me.";
         // Deve preservare la "R" maiuscola originale di "Rust", ma applicare il colore
         let expected_match = "Rust".bold().to_string();
         assert!(highlighted.contains(&expected_match));
+    }
+
+    #[test]
+    fn highlight_query_in_line_case_insensitive_handles_lowercase_expansion() {
+        colored::control::set_override(true);
+
+        let config = Config {
+            query: "i".to_string(),
+            file_path: String::new(),
+            ignore_case: true,
+            recursive: false,
+            line_number: false,
+            invert_match: false,
+        };
+
+        let highlighted = highlight_query_in_line("İstanbul", &config);
+
+        assert!(highlighted.contains(&"İ".bold().to_string()));
     }
 
     /// `highlight_query_in_line_multiple_matches` tests that the `highlight_query_in_line` function correctly highlights all occurrences of the query in the line when there are multiple matches.
