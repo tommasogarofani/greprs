@@ -45,7 +45,13 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
     let path = Path::new(&config.file_path);
     if path.is_dir() {
         if config.recursive {
-            let results = search_dir(&config, path)?;
+            let results = match search_dir(&config, path) {
+                Ok(results) => results,
+                Err(error) => {
+                    eprintln!("Error searching '{}': {error}", path.display());
+                    return Ok(());
+                }
+            };
 
             println!(
                 "{} occurrences found:",
@@ -85,7 +91,13 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
             return Err("Directory provided without --recursive flag".into());
         }
     } else {
-        let results = search_file(&config, path)?;
+        let results = match search_file(&config, path) {
+            Ok(results) => results,
+            Err(error) => {
+                eprintln!("Error reading '{}': {error}", path.display());
+                return Ok(());
+            }
+        };
 
         println!(
             "{} occurrences found:",
@@ -120,16 +132,32 @@ fn search_dir(config: &Config, path: &Path) -> Result<Vec<LineReturn>, Box<dyn s
     let mut results = Vec::new();
 
     for entry in std::fs::read_dir(path)? {
-        let entry = entry?;
+        let entry = match entry {
+            Ok(entry) => entry,
+            Err(error) => {
+                eprintln!("Error reading an entry in '{}': {error}", path.display());
+                continue;
+            }
+        };
         let entry_path = entry.path();
 
         if entry_path.is_dir() {
-            let sub_results = search_dir(config, &entry_path)?;
-            results.extend(sub_results);
+            match search_dir(config, &entry_path) {
+                Ok(sub_results) => results.extend(sub_results),
+                Err(error) => {
+                    eprintln!("Error searching '{}': {error}", entry_path.display());
+                }
+            }
         } else if entry_path.is_file() {
-            let file_results = search_file(config, &entry_path)?;
-            for (line_number, line) in file_results {
-                results.push((entry_path.clone(), line_number, line));
+            match search_file(config, &entry_path) {
+                Ok(file_results) => {
+                    for (line_number, line) in file_results {
+                        results.push((entry_path.clone(), line_number, line));
+                    }
+                }
+                Err(error) => {
+                    eprintln!("Error reading '{}': {error}", entry_path.display());
+                }
             }
         }
     }
