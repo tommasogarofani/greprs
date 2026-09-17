@@ -45,7 +45,13 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
     let path = Path::new(&config.file_path);
     if path.is_dir() {
         if config.recursive {
-            let results = search_dir(&config, path)?;
+            let results = match search_dir(&config, path) {
+                Ok(results) => results,
+                Err(error) => {
+                    eprintln!("Error searching '{}': {error}", path.display());
+                    return Ok(());
+                }
+            };
 
             println!(
                 "{} occurrences found:",
@@ -53,7 +59,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
             );
             if config.line_number {
                 for (file_path, line_number, line) in results {
-                    let highlighted = highlight_query_in_line(&line, &config);
+                    let highlighted = if !config.invert_match {
+                        highlight_query_in_line(&line, &config)
+                    } else {
+                        line
+                    };
                     println!(
                         "{}:{}: {highlighted}",
                         file_path.display().to_string().magenta(),
@@ -62,7 +72,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
                 }
             } else {
                 for (file_path, _line_number, line) in results {
-                    let highlighted = highlight_query_in_line(&line, &config);
+                    let highlighted = if !config.invert_match {
+                        highlight_query_in_line(&line, &config)
+                    } else {
+                        line
+                    };
                     println!(
                         "{}: {highlighted}",
                         file_path.display().to_string().magenta(),
@@ -77,7 +91,13 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
             return Err("Directory provided without --recursive flag".into());
         }
     } else {
-        let results = search_file(&config, path)?;
+        let results = match search_file(&config, path) {
+            Ok(results) => results,
+            Err(error) => {
+                eprintln!("Error reading '{}': {error}", path.display());
+                return Ok(());
+            }
+        };
 
         println!(
             "{} occurrences found:",
@@ -85,12 +105,20 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
         );
         if config.line_number {
             for (line_number, line) in results {
-                let highlighted = highlight_query_in_line(&line, &config);
+                let highlighted = if !config.invert_match {
+                    highlight_query_in_line(&line, &config)
+                } else {
+                    line
+                };
                 println!("{line_number}: {highlighted}");
             }
         } else {
             for (_line_number, line) in results {
-                let highlighted = highlight_query_in_line(&line, &config);
+                let highlighted = if !config.invert_match {
+                    highlight_query_in_line(&line, &config)
+                } else {
+                    line
+                };
                 println!("{highlighted}");
             }
         }
@@ -104,16 +132,32 @@ fn search_dir(config: &Config, path: &Path) -> Result<Vec<LineReturn>, Box<dyn s
     let mut results = Vec::new();
 
     for entry in std::fs::read_dir(path)? {
-        let entry = entry?;
+        let entry = match entry {
+            Ok(entry) => entry,
+            Err(error) => {
+                eprintln!("Error reading an entry in '{}': {error}", path.display());
+                continue;
+            }
+        };
         let entry_path = entry.path();
 
         if entry_path.is_dir() {
-            let sub_results = search_dir(config, &entry_path)?;
-            results.extend(sub_results);
+            match search_dir(config, &entry_path) {
+                Ok(sub_results) => results.extend(sub_results),
+                Err(error) => {
+                    eprintln!("Error searching '{}': {error}", entry_path.display());
+                }
+            }
         } else if entry_path.is_file() {
-            let file_results = search_file(config, &entry_path)?;
-            for (line_number, line) in file_results {
-                results.push((entry_path.clone(), line_number, line));
+            match search_file(config, &entry_path) {
+                Ok(file_results) => {
+                    for (line_number, line) in file_results {
+                        results.push((entry_path.clone(), line_number, line));
+                    }
+                }
+                Err(error) => {
+                    eprintln!("Error reading '{}': {error}", entry_path.display());
+                }
             }
         }
     }
@@ -132,52 +176,35 @@ fn search_file(
         &contents,
         config.ignore_case,
         config.invert_match,
-    ))
+    )
+    .into_iter()
+    .map(|(line_number, line)| (line_number, line.to_owned()))
+    .collect())
 }
 
 /// search searches for the query in the given contents and returns a vector of matching lines with their line numbers.
 /// If the ignore_case flag is set, it performs a case-insensitive search.
-fn search(
+fn search<'a>(
     query: &str,
-    contents: &str,
+    contents: &'a str,
     ignore_case: bool,
     invert_search: bool,
-) -> Vec<(usize, String)> {
-    if ignore_case {
-        if invert_search {
-            let query_lowercase = query.to_lowercase();
-            contents
-                .lines()
-                .enumerate()
-                .filter(|(_, line)| !line.to_lowercase().contains(&query_lowercase))
-                .map(|(idx, line)| (idx + 1, line.to_string()))
-                .collect()
-        } else {
-            let query_lowercase = query.to_lowercase();
-            contents
-                .lines()
-                .enumerate()
-                .filter(|(_, line)| line.to_lowercase().contains(&query_lowercase))
-                .map(|(idx, line)| (idx + 1, line.to_string()))
-                .collect()
-        }
-    } else {
-        if invert_search {
-            contents
-                .lines()
-                .enumerate()
-                .filter(|(_, line)| !line.contains(query))
-                .map(|(idx, line)| (idx + 1, line.to_string()))
-                .collect()
-        } else {
-            contents
-                .lines()
-                .enumerate()
-                .filter(|(_, line)| line.contains(query))
-                .map(|(idx, line)| (idx + 1, line.to_string()))
-                .collect()
-        }
-    }
+) -> Vec<(usize, &'a str)> {
+    let query_lower = query.to_lowercase();
+
+    contents
+        .lines()
+        .enumerate()
+        .filter(|(_, line)| {
+            let matched = if ignore_case {
+                line.to_lowercase().contains(&query_lower)
+            } else {
+                line.contains(query)
+            };
+            if invert_search { !matched } else { matched }
+        })
+        .map(|(idx, line)| (idx + 1, line))
+        .collect()
 }
 
 /// highlight_query_in_line highlights the occurrences of the query in the given line
@@ -190,17 +217,36 @@ fn highlight_query_in_line(line: &str, config: &Config) -> String {
     let mut last_idx = 0;
 
     if config.ignore_case {
-        let line_lower = line.to_lowercase();
+        let mut line_lower = String::new();
+        let mut lower_ranges = Vec::new();
+        for (start, character) in line.char_indices() {
+            let end = start + character.len_utf8();
+            let lower_start = line_lower.len();
+            line_lower.extend(character.to_lowercase());
+            lower_ranges.push((lower_start, line_lower.len(), start, end));
+        }
         let query_lower = config.query.to_lowercase();
+        let mut lower_last_idx = 0;
 
-        while let Some(idx) = line_lower[last_idx..].find(&query_lower) {
-            let actual_idx = last_idx + idx;
-            result.push_str(&line[last_idx..actual_idx]);
+        while let Some(idx) = line_lower[lower_last_idx..].find(&query_lower) {
+            let lower_start = lower_last_idx + idx;
+            let lower_end = lower_start + query_lower.len();
+            let (_, _, actual_start, _) = lower_ranges
+                .iter()
+                .find(|(start, end, _, _)| *end > lower_start && *start < lower_end)
+                .expect("case-insensitive match must map to the original line");
+            let (_, _, _, actual_end) = lower_ranges
+                .iter()
+                .rev()
+                .find(|(start, end, _, _)| *end > lower_start && *start < lower_end)
+                .expect("case-insensitive match must map to the original line");
 
-            let matched_text = &line[actual_idx..actual_idx + config.query.len()];
+            result.push_str(&line[last_idx..*actual_start]);
+            let matched_text = &line[*actual_start..*actual_end];
             result.push_str(&matched_text.bold().to_string());
 
-            last_idx = actual_idx + config.query.len();
+            last_idx = *actual_end;
+            lower_last_idx = lower_end;
         }
     } else {
         // Trova e colora le corrispondenze esatte
@@ -254,6 +300,30 @@ Nothing in these lines will match the target string.";
         assert!(search(query, contents, false, false).is_empty());
     }
 
+    #[test]
+    fn search_matches_empty_query_on_every_line() {
+        let results = search("", "first\nsecond", false, false);
+
+        assert_eq!(results, vec![(1, "first"), (2, "second")]);
+    }
+
+    #[test]
+    fn search_invert_match_excludes_matching_lines() {
+        let results = search("needle", "needle\nother\nNEEDLE", true, true);
+
+        assert_eq!(results, vec![(2, "other")]);
+    }
+
+    #[test]
+    fn search_preserves_unicode_lines_and_line_numbers() {
+        let results = search("caffe", "prima\ncaffè\nultima", false, false);
+
+        assert!(results.is_empty());
+
+        let results = search("caffè", "prima\ncaffè\nultima", false, false);
+        assert_eq!(results, vec![(2, "caffè")]);
+    }
+
     /// search_returns_single_line_match tests that the search function returns a vector containing the single matching line when there is one match for the query in the contents.
     #[test]
     fn search_returns_single_line_match() {
@@ -264,7 +334,7 @@ safe, fast, productive.
 Pick three.";
 
         assert_eq!(
-            vec![(2, "safe, fast, productive.".to_string())],
+            vec![(2, "safe, fast, productive.")],
             search(query, contents, false, false)
         );
     }
@@ -279,8 +349,8 @@ helps us create a highly
 productive manufacturing process.";
 
         let expected = vec![
-            (1, "This new ductile material".to_string()),
-            (3, "productive manufacturing process.".to_string()),
+            (1, "This new ductile material"),
+            (3, "productive manufacturing process."),
         ];
 
         assert_eq!(expected, search(query, contents, false, false));
@@ -297,7 +367,7 @@ Pick three.
 Trust me.";
 
         assert_eq!(
-            vec![(1, "Rust:".to_string()), (4, "Trust me.".to_string())],
+            vec![(1, "Rust:"), (4, "Trust me.")],
             search(query, contents, true, false)
         );
     }
@@ -344,6 +414,24 @@ Trust me.";
         // Deve preservare la "R" maiuscola originale di "Rust", ma applicare il colore
         let expected_match = "Rust".bold().to_string();
         assert!(highlighted.contains(&expected_match));
+    }
+
+    #[test]
+    fn highlight_query_in_line_case_insensitive_handles_lowercase_expansion() {
+        colored::control::set_override(true);
+
+        let config = Config {
+            query: "i".to_string(),
+            file_path: String::new(),
+            ignore_case: true,
+            recursive: false,
+            line_number: false,
+            invert_match: false,
+        };
+
+        let highlighted = highlight_query_in_line("İstanbul", &config);
+
+        assert!(highlighted.contains(&"İ".bold().to_string()));
     }
 
     /// `highlight_query_in_line_multiple_matches` tests that the `highlight_query_in_line` function correctly highlights all occurrences of the query in the line when there are multiple matches.
@@ -401,7 +489,7 @@ safe, fast, productive.
 Pick three.";
 
         let results = search(query, contents, false, false);
-        let expected = vec![(2, "safe, fast, productive.".to_string())];
+        let expected = vec![(2, "safe, fast, productive.")];
         assert_eq!(expected, results);
     }
 
@@ -415,7 +503,7 @@ safe, fast, productive.Pick three.
 Trust me.";
 
         let results = search(query, contents, true, false);
-        let expected = vec![(1, "Rust:".to_string()), (3, "Trust me.".to_string())];
+        let expected = vec![(1, "Rust:"), (3, "Trust me.")];
         assert_eq!(expected, results);
     }
 
@@ -431,9 +519,9 @@ Trust me.";
 
         let results = search(query, contents, false, true);
         let expected = vec![
-            (2, "safe, fast, productive.".to_string()),
-            (3, "Pick three.".to_string()),
-            (4, "Trust me.".to_string()),
+            (2, "safe, fast, productive."),
+            (3, "Pick three."),
+            (4, "Trust me."),
         ];
         assert_eq!(expected, results);
     }
