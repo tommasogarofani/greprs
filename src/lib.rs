@@ -300,6 +300,30 @@ Nothing in these lines will match the target string.";
         assert!(search(query, contents, false, false).is_empty());
     }
 
+    #[test]
+    fn search_matches_empty_query_on_every_line() {
+        let results = search("", "first\nsecond", false, false);
+
+        assert_eq!(results, vec![(1, "first"), (2, "second")]);
+    }
+
+    #[test]
+    fn search_invert_match_excludes_matching_lines() {
+        let results = search("needle", "needle\nother\nNEEDLE", true, true);
+
+        assert_eq!(results, vec![(2, "other")]);
+    }
+
+    #[test]
+    fn search_preserves_unicode_lines_and_line_numbers() {
+        let results = search("caffe", "prima\ncaffè\nultima", false, false);
+
+        assert!(results.is_empty());
+
+        let results = search("caffè", "prima\ncaffè\nultima", false, false);
+        assert_eq!(results, vec![(2, "caffè")]);
+    }
+
     /// search_returns_single_line_match tests that the search function returns a vector containing the single matching line when there is one match for the query in the contents.
     #[test]
     fn search_returns_single_line_match() {
