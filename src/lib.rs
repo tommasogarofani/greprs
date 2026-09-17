@@ -148,52 +148,35 @@ fn search_file(
         &contents,
         config.ignore_case,
         config.invert_match,
-    ))
+    )
+    .into_iter()
+    .map(|(line_number, line)| (line_number, line.to_owned()))
+    .collect())
 }
 
 /// search searches for the query in the given contents and returns a vector of matching lines with their line numbers.
 /// If the ignore_case flag is set, it performs a case-insensitive search.
-fn search(
+fn search<'a>(
     query: &str,
-    contents: &str,
+    contents: &'a str,
     ignore_case: bool,
     invert_search: bool,
-) -> Vec<(usize, String)> {
-    if ignore_case {
-        if invert_search {
-            let query_lowercase = query.to_lowercase();
-            contents
-                .lines()
-                .enumerate()
-                .filter(|(_, line)| !line.to_lowercase().contains(&query_lowercase))
-                .map(|(idx, line)| (idx + 1, line.to_string()))
-                .collect()
-        } else {
-            let query_lowercase = query.to_lowercase();
-            contents
-                .lines()
-                .enumerate()
-                .filter(|(_, line)| line.to_lowercase().contains(&query_lowercase))
-                .map(|(idx, line)| (idx + 1, line.to_string()))
-                .collect()
-        }
-    } else {
-        if invert_search {
-            contents
-                .lines()
-                .enumerate()
-                .filter(|(_, line)| !line.contains(query))
-                .map(|(idx, line)| (idx + 1, line.to_string()))
-                .collect()
-        } else {
-            contents
-                .lines()
-                .enumerate()
-                .filter(|(_, line)| line.contains(query))
-                .map(|(idx, line)| (idx + 1, line.to_string()))
-                .collect()
-        }
-    }
+) -> Vec<(usize, &'a str)> {
+    let query_lower = query.to_lowercase();
+
+    contents
+        .lines()
+        .enumerate()
+        .filter(|(_, line)| {
+            let matched = if ignore_case {
+                line.to_lowercase().contains(&query_lower)
+            } else {
+                line.contains(query)
+            };
+            if invert_search { !matched } else { matched }
+        })
+        .map(|(idx, line)| (idx + 1, line))
+        .collect()
 }
 
 /// highlight_query_in_line highlights the occurrences of the query in the given line
@@ -299,7 +282,7 @@ safe, fast, productive.
 Pick three.";
 
         assert_eq!(
-            vec![(2, "safe, fast, productive.".to_string())],
+            vec![(2, "safe, fast, productive.")],
             search(query, contents, false, false)
         );
     }
@@ -314,8 +297,8 @@ helps us create a highly
 productive manufacturing process.";
 
         let expected = vec![
-            (1, "This new ductile material".to_string()),
-            (3, "productive manufacturing process.".to_string()),
+            (1, "This new ductile material"),
+            (3, "productive manufacturing process."),
         ];
 
         assert_eq!(expected, search(query, contents, false, false));
@@ -332,7 +315,7 @@ Pick three.
 Trust me.";
 
         assert_eq!(
-            vec![(1, "Rust:".to_string()), (4, "Trust me.".to_string())],
+            vec![(1, "Rust:"), (4, "Trust me.")],
             search(query, contents, true, false)
         );
     }
@@ -454,7 +437,7 @@ safe, fast, productive.
 Pick three.";
 
         let results = search(query, contents, false, false);
-        let expected = vec![(2, "safe, fast, productive.".to_string())];
+        let expected = vec![(2, "safe, fast, productive.")];
         assert_eq!(expected, results);
     }
 
@@ -468,7 +451,7 @@ safe, fast, productive.Pick three.
 Trust me.";
 
         let results = search(query, contents, true, false);
-        let expected = vec![(1, "Rust:".to_string()), (3, "Trust me.".to_string())];
+        let expected = vec![(1, "Rust:"), (3, "Trust me.")];
         assert_eq!(expected, results);
     }
 
@@ -484,9 +467,9 @@ Trust me.";
 
         let results = search(query, contents, false, true);
         let expected = vec![
-            (2, "safe, fast, productive.".to_string()),
-            (3, "Pick three.".to_string()),
-            (4, "Trust me.".to_string()),
+            (2, "safe, fast, productive."),
+            (3, "Pick three."),
+            (4, "Trust me."),
         ];
         assert_eq!(expected, results);
     }
