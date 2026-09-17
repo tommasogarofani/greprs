@@ -273,6 +273,7 @@ fn highlight_query_in_line(line: &str, config: &Config) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::Parser;
 
     /// Helper function to create a Config instance for testing purposes.
     fn make_test_config(
@@ -292,6 +293,46 @@ mod tests {
             invert_match,
             count,
         }
+    }
+
+    #[test]
+    fn all_search_flags_are_enabled_when_parsed_together() {
+        let config = Config::try_parse_from([
+            "greprs",
+            "--ignore-case",
+            "--recursive",
+            "--line-number",
+            "--invert-match",
+            "--count",
+            "needle",
+            "file.txt",
+        ])
+        .unwrap();
+
+        assert!(config.ignore_case);
+        assert!(config.recursive);
+        assert!(config.line_number);
+        assert!(config.invert_match);
+        assert!(config.count);
+    }
+
+    #[test]
+    fn search_counts_matching_lines_for_count_flag() -> Result<(), Box<dyn std::error::Error>> {
+        let temp_dir = tempfile::tempdir()?;
+        let file_path = temp_dir.path().join("input.txt");
+        std::fs::write(
+            &file_path,
+            "\
+needle one
+other line
+needle two",
+        )?;
+
+        let config = make_test_config("needle", false, false, false, false, true);
+        let results = search_file(&config, &file_path)?;
+
+        assert_eq!(results.len(), 2);
+        Ok(())
     }
 
     /// search_returns_empty_when_no_match tests that the search function returns an empty vector when there are no matches for the query in the contents.
