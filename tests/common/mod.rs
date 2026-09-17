@@ -59,6 +59,7 @@ pub fn build_config(
         recursive,
         line_number,
         invert_match,
+        count: false,
     }
 }
 

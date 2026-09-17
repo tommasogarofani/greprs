@@ -37,6 +37,10 @@ pub struct Config {
     /// Invert the match, showing lines that do not contain the pattern
     #[arg(short = 'v', long = "invert-match")]
     pub invert_match: bool,
+
+    /// Count the number of occurrences instead of displaying them
+    #[arg(short = 'c', long = "count")]
+    pub count: bool,
 }
 
 /// Execute the search based on the provided configuration.
@@ -277,6 +281,7 @@ mod tests {
         recursive: bool,
         line_number: bool,
         invert_match: bool,
+        count: bool,
     ) -> Config {
         Config {
             query: query.to_string(),
@@ -285,6 +290,7 @@ mod tests {
             recursive,
             line_number,
             invert_match,
+            count,
         }
     }
 
@@ -387,6 +393,7 @@ Trust me.";
             recursive: false,
             line_number: false,
             invert_match: false,
+            count: false,
         };
         let highlighted = highlight_query_in_line(line, &config);
 
@@ -408,6 +415,7 @@ Trust me.";
             recursive: false,
             line_number: false,
             invert_match: false,
+            count: false,
         };
         let highlighted = highlight_query_in_line(line, &config);
 
@@ -427,6 +435,7 @@ Trust me.";
             recursive: false,
             line_number: false,
             invert_match: false,
+            count: false,
         };
 
         let highlighted = highlight_query_in_line("İstanbul", &config);
@@ -448,6 +457,7 @@ Trust me.";
             recursive: false,
             line_number: false,
             invert_match: false,
+            count: false,
         };
         let highlighted = highlight_query_in_line(line, &config);
 
@@ -469,7 +479,7 @@ Trust me.";
         std::fs::write(&file1, "rust safe and fast")?;
         std::fs::write(&file2, "learning rust deeply")?;
 
-        let config = make_test_config("rust", false, true, false, false);
+        let config = make_test_config("rust", false, true, false, false, false);
 
         let results = search_dir(&config, &temp_dir)?;
 
