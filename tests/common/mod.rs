@@ -3,6 +3,7 @@
 use greprs::Config;
 use std::fs;
 use std::path::PathBuf;
+use std::process::{Command, Output};
 use tempfile::TempDir;
 
 pub struct TestingEnvironment {
@@ -59,4 +60,11 @@ pub fn build_config(
         line_number,
         invert_match,
     }
+}
+
+pub fn run_binary(args: &[&str]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_greprs"))
+        .args(args)
+        .output()
+        .expect("failed to execute greprs")
 }
