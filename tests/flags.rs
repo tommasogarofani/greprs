@@ -57,6 +57,47 @@ fn test_invert_match_flag() {
 }
 
 #[test]
+fn test_count_flag_prints_only_the_number_of_matches() {
+    let content = "needle one\nother line\nneedle two\n";
+    let env = TestingEnvironment::new_file(content);
+
+    let output = run_binary(&["--count", "needle", env.file_path.to_str().unwrap()]);
+
+    assert!(output.status.success());
+    assert_eq!(String::from_utf8(output.stdout).unwrap().trim(), "2");
+}
+
+#[test]
+fn test_count_short_flag_prints_only_the_number_of_matches() {
+    let content = "needle one\nother line\nneedle two\n";
+    let env = TestingEnvironment::new_file(content);
+
+    let output = run_binary(&["-c", "needle", env.file_path.to_str().unwrap()]);
+
+    assert!(output.status.success());
+    assert_eq!(String::from_utf8(output.stdout).unwrap().trim(), "2");
+}
+
+#[test]
+fn test_count_flag_prints_only_the_total_for_recursive_search() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let first_file = temp_dir.path().join("first.txt");
+    let second_file = temp_dir.path().join("second.txt");
+    std::fs::write(&first_file, "needle\nother\n").unwrap();
+    std::fs::write(&second_file, "needle\nneedle\n").unwrap();
+
+    let output = run_binary(&[
+        "--count",
+        "--recursive",
+        "needle",
+        temp_dir.path().to_str().unwrap(),
+    ]);
+
+    assert!(output.status.success());
+    assert_eq!(String::from_utf8(output.stdout).unwrap().trim(), "3");
+}
+
+#[test]
 fn test_directory_without_recursive_flag_returns_error() {
     let temp_dir = tempfile::tempdir().unwrap();
 

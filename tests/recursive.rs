@@ -15,7 +15,7 @@ fn test_recursive_search_in_subdirectories() {
     let output = run_binary(&["--recursive", "target", sub_dir.to_str().unwrap()]);
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains("1 occurrences found:"));
+    assert!(stdout.contains("nested_file.txt"));
     assert!(stdout.contains("target query in nested folder"));
 }
 
