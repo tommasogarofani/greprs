@@ -66,6 +66,7 @@ cargo run -- duct poem.txt
 ```
 
 ### Flags
+- `--count`, `-c`: Display the count of matching lines instead of the lines themselves.
 - `--help`, `-h`: Display help information.
 - `--ignore-case`, `-i`: Perform a case-insensitive search.
 - `--line-number`, `-n`: Display line numbers for each match.
