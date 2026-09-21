@@ -63,6 +63,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
                 }
             };
 
+            println!(
+                "{} occurrences found:",
+                results.len().to_string().cyan().bold()
+            );
+
             if config.line_number {
                 for (file_path, line_number, line) in results {
                     let highlighted = if !config.invert_match {
@@ -116,6 +121,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
                 return Ok(());
             }
         };
+
+        println!(
+            "{} occurrences found:",
+            results.len().to_string().cyan().bold()
+        );
 
         if config.line_number {
             for (line_number, line) in results {
