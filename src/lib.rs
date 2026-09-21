@@ -1,5 +1,6 @@
 use clap::Parser;
 use colored::Colorize;
+use std::io::{BufRead, BufReader};
 use std::path::Path;
 
 type LineReturn = (std::path::PathBuf, usize, String);
@@ -49,6 +50,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
     let path = Path::new(&config.file_path);
     if path.is_dir() {
         if config.recursive {
+            if config.count {
+                println!("{}", count_dir(&config, path)?);
+                return Ok(());
+            }
+
             let results = match search_dir(&config, path) {
                 Ok(results) => results,
                 Err(error) => {
@@ -57,10 +63,6 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
                 }
             };
 
-            println!(
-                "{} occurrences found:",
-                results.len().to_string().cyan().bold()
-            );
             if config.line_number {
                 for (file_path, line_number, line) in results {
                     let highlighted = if !config.invert_match {
@@ -95,6 +97,18 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
             return Err("Directory provided without --recursive flag".into());
         }
     } else {
+        if config.count {
+            let count = match count_file(&config, path) {
+                Ok(count) => count,
+                Err(error) => {
+                    eprintln!("Error reading '{}': {error}", path.display());
+                    return Ok(());
+                }
+            };
+            println!("{count}");
+            return Ok(());
+        }
+
         let results = match search_file(&config, path) {
             Ok(results) => results,
             Err(error) => {
@@ -103,10 +117,6 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
             }
         };
 
-        println!(
-            "{} occurrences found:",
-            results.len().to_string().cyan().bold()
-        );
         if config.line_number {
             for (line_number, line) in results {
                 let highlighted = if !config.invert_match {
@@ -129,6 +139,67 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+fn count_dir(config: &Config, path: &Path) -> Result<usize, Box<dyn std::error::Error>> {
+    let mut count = 0;
+
+    for entry in std::fs::read_dir(path)? {
+        let entry = match entry {
+            Ok(entry) => entry,
+            Err(error) => {
+                eprintln!("Error reading an entry in '{}': {error}", path.display());
+                continue;
+            }
+        };
+        let entry_path = entry.path();
+
+        if entry_path.is_dir() {
+            match count_dir(config, &entry_path) {
+                Ok(sub_count) => count += sub_count,
+                Err(error) => {
+                    eprintln!("Error searching '{}': {error}", entry_path.display());
+                }
+            }
+        } else if entry_path.is_file() {
+            match count_file(config, &entry_path) {
+                Ok(file_count) => count += file_count,
+                Err(error) => {
+                    eprintln!("Error reading '{}': {error}", entry_path.display());
+                }
+            }
+        }
+    }
+
+    Ok(count)
+}
+
+fn count_file(config: &Config, path: &Path) -> Result<usize, Box<dyn std::error::Error>> {
+    let file = std::fs::File::open(path)?;
+    let reader = BufReader::new(file);
+    let query_lower = config.query.to_lowercase();
+    let mut count = 0;
+
+    for line in reader.lines() {
+        let line = line?;
+        let matched = {
+            let matched = if config.ignore_case {
+                line.to_lowercase().contains(&query_lower)
+            } else {
+                line.contains(&config.query)
+            };
+            if config.invert_match {
+                !matched
+            } else {
+                matched
+            }
+        };
+        if matched {
+            count += 1;
+        }
+    }
+
+    Ok(count)
 }
 
 /// search_dir searches for the query in the specified directory and its subdirectories.
